@@ -220,12 +220,32 @@ SOVEREIGN is integrated with the following applications:
 
 ### Komon Integration
 
-Komon syncs your civic participation (problems posted, directions proposed, win rate) to SOVEREIGN's Civic dimension:
+Komon syncs your civic participation to SOVEREIGN's Civic dimension. Users can sync directly from the Komon profile page with a single click.
+
+**Civic Score Calculation:**
+
+| Metric | Weight | Description |
+|--------|--------|-------------|
+| Win Rate | 40% | Prediction accuracy on directions |
+| Directions Won | 25% | Tier based on successful predictions |
+| Level/Trust | 25% | Komon level as trust proxy |
+| Current Streak | 10% | Consecutive win bonus |
 
 ```typescript
-// Sync Komon reputation to SOVEREIGN
-await komonProgram.methods.syncToSovereign().rpc();
+import { syncToSovereign } from '@/lib/solana/sovereign';
+
+// Sync Komon reputation to SOVEREIGN civic score
+const result = await syncToSovereign(connection, wallet, {
+  winRate: 77.8,
+  directionsWon: 28,
+  directionsProposed: 45,
+  currentStreak: 5,
+  level: 15,
+});
+// result: { txId: "...", newScore: 6850, needsSetup: false }
 ```
+
+**First-time sync:** If the user hasn't set a civic authority yet, Komon automatically sets the user as their own authority before updating the score.
 
 ### Umbra Integration
 
