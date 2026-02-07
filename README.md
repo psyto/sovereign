@@ -209,6 +209,56 @@ invoke(
 | TradingScoreDetails | 71           |
 | CivicScoreDetails   | 81           |
 
+## Integrated Applications
+
+SOVEREIGN is integrated with the following applications:
+
+| Application | Integration | Description |
+|-------------|-------------|-------------|
+| [Komon](https://github.com/psyto/komon) | Civic Score Writer | Civic prediction market syncs participation scores |
+| [Umbra](https://github.com/psyto/veil) | Tier Reader | Privacy DEX reads tier for fee discounts & MEV protection |
+
+### Komon Integration
+
+Komon syncs your civic participation (problems posted, directions proposed, win rate) to SOVEREIGN's Civic dimension:
+
+```typescript
+// Sync Komon reputation to SOVEREIGN
+await komonProgram.methods.syncToSovereign().rpc();
+```
+
+### Umbra Integration
+
+Umbra reads your SOVEREIGN tier to determine trading benefits:
+
+```typescript
+// Umbra fetches SOVEREIGN identity for tier-based fees
+const identity = await fetchSovereignIdentity(connection, wallet);
+const feeBps = getFeeBps(identity.tier); // 3-50 bps based on tier
+```
+
+---
+
+## Scripts
+
+Test scripts are available in the `scripts/` directory:
+
+```bash
+# Verify devnet deployment
+npx ts-node scripts/verify-devnet.ts
+
+# Create identity on devnet
+npx ts-node scripts/create-identity-devnet.ts
+
+# Test Komon → SOVEREIGN sync
+npx ts-node scripts/test-komon-sync.ts
+
+# Test Umbra reading SOVEREIGN tier
+npx ts-node scripts/test-umbra-read.ts
+```
+
+---
+
 ## License
 
 MIT
