@@ -1,5 +1,33 @@
 use anchor_lang::prelude::*;
 
+// =============================================================================
+// SOVEREIGN STATE - Multi-Dimensional Reputation Protocol
+// =============================================================================
+//
+// Extended with Vitalik's Creator Coin model.
+// See: https://vitalik.eth.limo/general/2025/01/23/creatorcoins.html
+// =============================================================================
+
+// Vitalik's Creator Coin Extension - new state modules
+pub mod creator_dao;
+pub mod admission_market;
+
+pub use creator_dao::*;
+pub use admission_market::*;
+
+// =============================================================================
+// SOVEREIGN IDENTITY - Multi-Dimensional Reputation Protocol
+// =============================================================================
+//
+// Extended with Creator dimension based on Vitalik's "How I would do creator
+// coins" proposal. The Creator dimension is unique in that its "authority"
+// is not a single oracle, but the collective judgment of Creator DAOs.
+//
+// Vitalik: "the ultimate decider of who rises and falls is not speculators,
+// but high-value content creators (we make the assumption that good creators
+// are also good judges of quality, which seems often true)"
+// =============================================================================
+
 /// Main identity account that stores user's multi-dimensional reputation
 #[account]
 pub struct SovereignIdentity {
@@ -18,6 +46,9 @@ pub struct SovereignIdentity {
     pub developer_authority: Pubkey,
     /// Authority that can update infrastructure score (e.g., DePINfinity program)
     pub infra_authority: Pubkey,
+    /// Authority that can update creator score (CreatorDAO program)
+    /// Vitalik: Unlike other dimensions, this is governed by peer collectives
+    pub creator_authority: Pubkey,
 
     // === Dimension Scores (0-10000 basis points) ===
     /// Trading reputation score
@@ -28,6 +59,9 @@ pub struct SovereignIdentity {
     pub developer_score: u16,
     /// Infrastructure contribution score
     pub infra_score: u16,
+    /// Creator reputation score (Vitalik's creator coin model)
+    /// Derived from: DAO acceptances, judgment quality, prediction accuracy
+    pub creator_score: u16,
 
     // === Computed ===
     /// Weighted composite score
@@ -50,20 +84,52 @@ impl SovereignIdentity {
         32 +                     // civic_authority
         32 +                     // developer_authority
         32 +                     // infra_authority
+        32 +                     // creator_authority (NEW - Vitalik extension)
         2 +                      // trading_score
         2 +                      // civic_score
         2 +                      // developer_score
         2 +                      // infra_score
+        2 +                      // creator_score (NEW - Vitalik extension)
         2 +                      // composite_score
         1 +                      // tier
         8 +                      // last_updated
         1;                       // bump
-    // Total: 200 bytes
+    // Total: 236 bytes
 
     /// Recalculate composite score and tier based on dimension scores
+    ///
+    /// Updated weighting to include Creator dimension:
+    /// - Trading: 30% (reduced from 40%)
+    /// - Civic: 20% (reduced from 25%)
+    /// - Developer: 15% (reduced from 20%)
+    /// - Infra: 10% (reduced from 15%)
+    /// - Creator: 25% (NEW - Vitalik's creator coin model)
+    ///
+    /// Vitalik: "the ultimate decider of who rises and falls is not speculators,
+    /// but high-value content creators"
     pub fn recalculate(&mut self) {
-        // Weighted average:
-        // Trading: 40%, Civic: 25%, Developer: 20%, Infra: 15%
+        // Weighted average with Creator dimension
+        let weighted = self.trading_score as u32 * 30
+            + self.civic_score as u32 * 20
+            + self.developer_score as u32 * 15
+            + self.infra_score as u32 * 10
+            + self.creator_score as u32 * 25;  // Creator has significant weight
+
+        self.composite_score = (weighted / 100) as u16;
+
+        // Calculate tier from composite score
+        self.tier = match self.composite_score {
+            0..=1999 => 1,      // Bronze
+            2000..=3999 => 2,   // Silver
+            4000..=5999 => 3,   // Gold
+            6000..=7999 => 4,   // Platinum
+            _ => 5,             // Diamond
+        };
+    }
+
+    /// Recalculate using legacy weights (without Creator dimension)
+    /// For backwards compatibility during migration
+    pub fn recalculate_legacy(&mut self) {
         let weighted = self.trading_score as u32 * 40
             + self.civic_score as u32 * 25
             + self.developer_score as u32 * 20
@@ -71,7 +137,6 @@ impl SovereignIdentity {
 
         self.composite_score = (weighted / 100) as u16;
 
-        // Calculate tier from composite score
         self.tier = match self.composite_score {
             0..=1999 => 1,
             2000..=3999 => 2,
