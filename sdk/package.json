@@ -2,13 +2,28 @@
   "name": "@sovereign/sdk",
   "version": "0.1.0",
   "description": "TypeScript SDK for SOVEREIGN identity and reputation protocol",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/psyto/sovereign.git",
+    "directory": "sdk"
+  },
+  "author": "Sovereign Contributors",
+  "license": "MIT",
   "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsup src/index.ts --format cjs,esm --dts",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build"
   },
@@ -17,6 +32,7 @@
     "@solana/web3.js": "^1.91.0"
   },
   "devDependencies": {
+    "tsup": "^8.5.1",
     "typescript": "^5.3.0"
   },
   "peerDependencies": {
@@ -29,12 +45,5 @@
     "identity",
     "reputation",
     "sovereign"
-  ],
-  "author": "Sovereign Contributors",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/psyto/sovereign.git",
-    "directory": "sdk"
-  }
+  ]
 }
