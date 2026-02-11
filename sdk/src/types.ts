@@ -18,6 +18,8 @@ export interface SovereignIdentity {
   developerAuthority: PublicKey;
   /** Authority that can update infrastructure score */
   infraAuthority: PublicKey;
+  /** Authority that can update creator score */
+  creatorAuthority: PublicKey;
 
   /** Trading reputation score (0-10000) */
   tradingScore: number;
@@ -27,6 +29,8 @@ export interface SovereignIdentity {
   developerScore: number;
   /** Infrastructure contribution score (0-10000) */
   infraScore: number;
+  /** Creator reputation score (0-10000) */
+  creatorScore: number;
 
   /** Weighted composite score (0-10000) */
   compositeScore: number;
@@ -47,6 +51,7 @@ export interface Scores {
   civic: number;
   developer: number;
   infra: number;
+  creator: number;
   composite: number;
   tier: number;
 }
@@ -79,6 +84,328 @@ export interface CivicScoreDetails {
   lastUpdated: BN;
   bump: number;
 }
+
+// ============================================================================
+// Creator DAO Types
+// ============================================================================
+
+export enum ContentType {
+  Music = 0,
+  VisualArt = 1,
+  Writing = 2,
+  Video = 3,
+  Photography = 4,
+  Design = 5,
+  Gaming = 6,
+  Education = 7,
+  Technology = 8,
+  Other = 9,
+}
+
+export enum VoteChoice {
+  Accept = 0,
+  Reject = 1,
+  Abstain = 2,
+}
+
+export enum MarketStatus {
+  Open = 0,
+  Resolved = 1,
+  Cancelled = 2,
+  Expired = 3,
+}
+
+export enum MarketOutcome {
+  Pending = 0,
+  Accepted = 1,
+  Rejected = 2,
+  Cancelled = 3,
+}
+
+export enum PositionSide {
+  Yes = 0,
+  No = 1,
+}
+
+/**
+ * Detailed creator score breakdown
+ */
+export interface CreatorScoreDetails {
+  identity: PublicKey;
+  daosAccepted: number;
+  firstDaoAcceptance: BN | null;
+  daoReputationPoints: number;
+  failedNominations: number;
+  predictionsCorrect: number;
+  predictionsIncorrect: number;
+  predictionAccuracyBps: number;
+  predictionPnlBps: number;
+  peerUpvotes: BN;
+  peerDownvotes: BN;
+  totalBurned: BN;
+  lastUpdated: BN;
+  bump: number;
+}
+
+/**
+ * DAO counter for unique DAO IDs
+ */
+export interface DAOCounter {
+  count: BN;
+  bump: number;
+}
+
+/**
+ * Creator DAO account
+ */
+export interface CreatorDAO {
+  daoId: BN;
+  name: number[]; // Fixed 64-byte array
+  description: number[]; // Fixed 256-byte array
+  contentType: ContentType;
+  styleTag: number[]; // Fixed 32-byte array
+  regionCode: number[]; // Fixed 8-byte array
+  admissionThreshold: number;
+  votingPeriod: BN;
+  quorum: number;
+  memberCount: number;
+  founder: PublicKey;
+  createdAt: BN;
+  pendingNominations: number;
+  totalAdmitted: BN;
+  totalRemoved: BN;
+  isActive: boolean;
+  nominationNonce: BN;
+  bump: number;
+}
+
+/**
+ * DAO membership account
+ */
+export interface DAOMembership {
+  dao: PublicKey;
+  memberIdentity: PublicKey;
+  memberWallet: PublicKey;
+  admittedAt: BN;
+  nominatedBy: PublicKey | null;
+  successfulNominations: number;
+  votesCast: number;
+  isActive: boolean;
+  bump: number;
+}
+
+/**
+ * Nomination account
+ */
+export interface Nomination {
+  dao: PublicKey;
+  nominationId: BN;
+  nomineeIdentity: PublicKey;
+  nomineeWallet: PublicKey;
+  nominator: PublicKey;
+  reason: number[]; // Fixed 256-byte array
+  createdAt: BN;
+  votingEndsAt: BN;
+  votesAccept: number;
+  votesReject: number;
+  votesAbstain: number;
+  totalMembersSnapshot: number;
+  isResolved: boolean;
+  wasAccepted: boolean;
+  resolvedAt: BN | null;
+  bump: number;
+}
+
+/**
+ * Vote record account (semi-anonymous via hash)
+ */
+export interface VoteRecord {
+  nomination: PublicKey;
+  voterHash: number[]; // 32-byte keccak hash
+  vote: VoteChoice;
+  votedAt: BN;
+  bump: number;
+}
+
+// ============================================================================
+// Admission Market Types
+// ============================================================================
+
+/**
+ * Admission market (CPMM prediction market with burn)
+ */
+export interface AdmissionMarket {
+  marketId: BN;
+  dao: PublicKey;
+  creatorIdentity: PublicKey;
+  creatorWallet: PublicKey;
+  marketCreator: PublicKey;
+  creatorBonusBps: number;
+  yesPool: BN;
+  noPool: BN;
+  totalPool: BN;
+  predictorCount: number;
+  feeBps: number;
+  accumulatedFees: BN;
+  createdAt: BN;
+  tradingEndsAt: BN | null;
+  expiresAt: BN;
+  status: MarketStatus;
+  outcome: MarketOutcome;
+  resolvedByNomination: PublicKey | null;
+  resolvedAt: BN | null;
+  burnPercentageBps: number;
+  amountBurned: BN;
+  bump: number;
+}
+
+/**
+ * Market position account
+ */
+export interface MarketPosition {
+  market: PublicKey;
+  predictor: PublicKey;
+  predictorIdentity: PublicKey | null;
+  yesTokens: BN;
+  noTokens: BN;
+  totalStaked: BN;
+  openedAt: BN;
+  claimed: boolean;
+  payout: BN;
+  bump: number;
+}
+
+/**
+ * Market factory configuration
+ */
+export interface MarketFactory {
+  marketCount: BN;
+  totalMarkets: BN;
+  totalVolume: BN;
+  minInitialLiquidity: BN;
+  bump: number;
+}
+
+/**
+ * Surfacing score for talent scouts
+ */
+export interface SurfacingScore {
+  identity: PublicKey;
+  marketsCreated: number;
+  successfulSurfaces: number;
+  surfacingAccuracyBps: number;
+  scoutScore: number;
+  lastUpdated: BN;
+  bump: number;
+}
+
+// ============================================================================
+// Instruction Params
+// ============================================================================
+
+export interface CreateDAOParams {
+  name: string;
+  description: string;
+  contentType: ContentType;
+  styleTag: string;
+  regionCode: string;
+  admissionThreshold: number;
+  votingPeriod: BN;
+  quorum: number;
+}
+
+export interface NominateCreatorParams {
+  reason: string;
+}
+
+export interface CreateAdmissionMarketParams {
+  initialLiquidity: BN;
+  expiryDays: number;
+}
+
+export interface TakePositionParams {
+  amount: BN;
+  side: PositionSide;
+  minTokens: BN;
+}
+
+// ============================================================================
+// Score Weights (matching Rust constants)
+// ============================================================================
+
+export const SCORE_WEIGHTS = {
+  trading: 30,
+  civic: 20,
+  developer: 15,
+  infra: 10,
+  creator: 25,
+} as const;
+
+/**
+ * Calculate composite score from individual dimensions (mirrors Rust logic)
+ */
+export function calculateCompositeScore(scores: {
+  trading: number;
+  civic: number;
+  developer: number;
+  infra: number;
+  creator: number;
+}): number {
+  return Math.floor(
+    (scores.trading * SCORE_WEIGHTS.trading +
+      scores.civic * SCORE_WEIGHTS.civic +
+      scores.developer * SCORE_WEIGHTS.developer +
+      scores.infra * SCORE_WEIGHTS.infra +
+      scores.creator * SCORE_WEIGHTS.creator) /
+      100
+  );
+}
+
+/**
+ * Calculate creator score from details (mirrors Rust CreatorScoreDetails::calculate_score)
+ * Weights: 40% DAO acceptance, 25% judgment quality, 20% prediction accuracy, 15% peer upvotes
+ */
+export function calculateCreatorScore(details: {
+  daoReputationPoints: number;
+  predictionAccuracyBps: number;
+  peerUpvotes: number;
+  peerDownvotes: number;
+  predictionsCorrect: number;
+  predictionsIncorrect: number;
+}): number {
+  const daoComponent = Math.min(details.daoReputationPoints, 10000) * 40;
+
+  const totalPredictions = details.predictionsCorrect + details.predictionsIncorrect;
+  const judgmentComponent =
+    totalPredictions > 0
+      ? Math.floor((details.predictionsCorrect * 10000) / totalPredictions) * 25
+      : 0;
+
+  const accuracyComponent = details.predictionAccuracyBps * 20;
+
+  const totalVotes = details.peerUpvotes + details.peerDownvotes;
+  const peerComponent =
+    totalVotes > 0
+      ? Math.floor((details.peerUpvotes * 10000) / Number(totalVotes)) * 15
+      : 5000 * 15; // neutral default
+
+  return Math.floor((daoComponent + judgmentComponent + accuracyComponent + peerComponent) / 100);
+}
+
+/**
+ * Calculate surfacing/scout score (mirrors Rust SurfacingScore::calculate_scout_score)
+ */
+export function calculateScoutScore(details: {
+  marketsCreated: number;
+  successfulSurfaces: number;
+}): number {
+  if (details.marketsCreated === 0) return 0;
+  return Math.floor((details.successfulSurfaces * 10000) / details.marketsCreated);
+}
+
+// ============================================================================
+// Tier Configuration
+// ============================================================================
 
 /**
  * Tier configuration

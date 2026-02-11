@@ -7,16 +7,61 @@ export {
   getIdentityPda,
   getTradingDetailsPda,
   getCivicDetailsPda,
+  getCreatorDetailsPda,
+  getDaoCounterPda,
+  getDaoPda,
+  getDaoMembershipPda,
+  getNominationPda,
+  getVoteRecordPda,
+  getAdmissionMarketPda,
+  getMarketPositionPda,
+  getMarketFactoryPda,
+  getSurfacingScorePda,
 } from './pda';
 
-// Types
+// Account types
 export type {
   SovereignIdentity,
   Scores,
   TradingScoreDetails,
   CivicScoreDetails,
+  CreatorScoreDetails,
+  DAOCounter,
+  CreatorDAO,
+  DAOMembership,
+  Nomination,
+  VoteRecord,
+  AdmissionMarket,
+  MarketPosition,
+  MarketFactory,
+  SurfacingScore,
   TierConfig,
 } from './types';
 
-// Type utilities
-export { TIER_CONFIGS, getTierName, getPointsToNextTier } from './types';
+// Param types
+export type {
+  CreateDAOParams,
+  NominateCreatorParams,
+  CreateAdmissionMarketParams,
+  TakePositionParams,
+} from './types';
+
+// Enums
+export {
+  ContentType,
+  VoteChoice,
+  MarketStatus,
+  MarketOutcome,
+  PositionSide,
+} from './types';
+
+// Score utilities
+export {
+  SCORE_WEIGHTS,
+  calculateCompositeScore,
+  calculateCreatorScore,
+  calculateScoutScore,
+  TIER_CONFIGS,
+  getTierName,
+  getPointsToNextTier,
+} from './types';
