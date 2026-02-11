@@ -34,3 +34,6 @@ npm-debug.log*
 # Test artifacts
 .anchor/
 test-ledger/
+
+# Presentations
+pitch-deck.html
