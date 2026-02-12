@@ -41,16 +41,19 @@ import {
  * Provides methods to interact with the SOVEREIGN identity and reputation protocol
  */
 export class SovereignClient {
-  public program: any; // Will be properly typed when IDL is available
+  public program: Program | null;
   public provider: AnchorProvider;
 
   constructor(provider: AnchorProvider, idl?: Idl) {
     this.provider = provider;
-    // Program will be initialized with IDL when available
-    // For now, this is a placeholder
-    if (idl) {
-      this.program = new Program(idl, provider);
+    this.program = idl ? new Program(idl, provider) : null;
+  }
+
+  private requireProgram(): Program {
+    if (!this.program) {
+      throw new Error('SovereignClient: program not initialized — pass IDL to constructor');
     }
+    return this.program;
   }
 
   // ============================================
@@ -82,7 +85,7 @@ export class SovereignClient {
   async getIdentity(owner: PublicKey): Promise<SovereignIdentity | null> {
     const [pda] = getIdentityPda(owner);
     try {
-      return await this.program.account.sovereignIdentity.fetch(pda);
+      return await this.requireProgram().account.sovereignIdentity.fetch(pda);
     } catch {
       return null;
     }
@@ -137,7 +140,7 @@ export class SovereignClient {
     const [identityPda] = getIdentityPda(owner);
     const [detailsPda] = getTradingDetailsPda(identityPda);
     try {
-      return await this.program.account.tradingScoreDetails.fetch(detailsPda);
+      return await this.requireProgram().account.tradingScoreDetails.fetch(detailsPda);
     } catch {
       return null;
     }
@@ -152,7 +155,7 @@ export class SovereignClient {
     const [identityPda] = getIdentityPda(owner);
     const [detailsPda] = getCivicDetailsPda(identityPda);
     try {
-      return await this.program.account.civicScoreDetails.fetch(detailsPda);
+      return await this.requireProgram().account.civicScoreDetails.fetch(detailsPda);
     } catch {
       return null;
     }
@@ -165,7 +168,7 @@ export class SovereignClient {
     const [identityPda] = getIdentityPda(owner);
     const [detailsPda] = getCreatorDetailsPda(identityPda);
     try {
-      return await this.program.account.creatorScoreDetails.fetch(detailsPda);
+      return await this.requireProgram().account.creatorScoreDetails.fetch(detailsPda);
     } catch {
       return null;
     }
@@ -177,7 +180,7 @@ export class SovereignClient {
   async getDao(founder: PublicKey, daoId: BN | number): Promise<CreatorDAO | null> {
     const [pda] = getDaoPda(founder, daoId);
     try {
-      return await this.program.account.creatorDao.fetch(pda);
+      return await this.requireProgram().account.creatorDao.fetch(pda);
     } catch {
       return null;
     }
@@ -189,7 +192,7 @@ export class SovereignClient {
   async getDaoMembership(dao: PublicKey, memberWallet: PublicKey): Promise<DAOMembership | null> {
     const [pda] = getDaoMembershipPda(dao, memberWallet);
     try {
-      return await this.program.account.daoMembership.fetch(pda);
+      return await this.requireProgram().account.daoMembership.fetch(pda);
     } catch {
       return null;
     }
@@ -201,7 +204,7 @@ export class SovereignClient {
   async getNomination(dao: PublicKey, nonce: BN | number): Promise<Nomination | null> {
     const [pda] = getNominationPda(dao, nonce);
     try {
-      return await this.program.account.nomination.fetch(pda);
+      return await this.requireProgram().account.nomination.fetch(pda);
     } catch {
       return null;
     }
@@ -216,7 +219,7 @@ export class SovereignClient {
   ): Promise<AdmissionMarket | null> {
     const [pda] = getAdmissionMarketPda(dao, predictedCreatorIdentity);
     try {
-      return await this.program.account.admissionMarket.fetch(pda);
+      return await this.requireProgram().account.admissionMarket.fetch(pda);
     } catch {
       return null;
     }
@@ -228,7 +231,7 @@ export class SovereignClient {
   async getMarketPosition(market: PublicKey, predictor: PublicKey): Promise<MarketPosition | null> {
     const [pda] = getMarketPositionPda(market, predictor);
     try {
-      return await this.program.account.marketPosition.fetch(pda);
+      return await this.requireProgram().account.marketPosition.fetch(pda);
     } catch {
       return null;
     }
@@ -240,7 +243,7 @@ export class SovereignClient {
   async getSurfacingScore(creator: PublicKey): Promise<SurfacingScore | null> {
     const [pda] = getSurfacingScorePda(creator);
     try {
-      return await this.program.account.surfacingScore.fetch(pda);
+      return await this.requireProgram().account.surfacingScore.fetch(pda);
     } catch {
       return null;
     }
@@ -268,7 +271,7 @@ export class SovereignClient {
     const owner = this.provider.wallet.publicKey;
     const [identityPda] = getIdentityPda(owner);
 
-    return this.program.methods
+    return this.requireProgram().methods
       .createIdentity()
       .accounts({
         owner,
@@ -287,7 +290,7 @@ export class SovereignClient {
     const owner = this.provider.wallet.publicKey;
     const [identityPda] = getIdentityPda(owner);
 
-    return this.program.methods
+    return this.requireProgram().methods
       .setTradingAuthority(newAuthority)
       .accounts({
         owner,
@@ -305,7 +308,7 @@ export class SovereignClient {
     const owner = this.provider.wallet.publicKey;
     const [identityPda] = getIdentityPda(owner);
 
-    return this.program.methods
+    return this.requireProgram().methods
       .setCivicAuthority(newAuthority)
       .accounts({
         owner,
@@ -323,7 +326,7 @@ export class SovereignClient {
     const owner = this.provider.wallet.publicKey;
     const [identityPda] = getIdentityPda(owner);
 
-    return this.program.methods
+    return this.requireProgram().methods
       .setDeveloperAuthority(newAuthority)
       .accounts({
         owner,
@@ -341,7 +344,7 @@ export class SovereignClient {
     const owner = this.provider.wallet.publicKey;
     const [identityPda] = getIdentityPda(owner);
 
-    return this.program.methods
+    return this.requireProgram().methods
       .setInfraAuthority(newAuthority)
       .accounts({
         owner,
@@ -357,7 +360,7 @@ export class SovereignClient {
     const owner = this.provider.wallet.publicKey;
     const [identityPda] = getIdentityPda(owner);
 
-    return this.program.methods
+    return this.requireProgram().methods
       .setCreatorAuthority(newAuthority)
       .accounts({
         owner,
@@ -385,7 +388,7 @@ export class SovereignClient {
   ): Promise<string> {
     const [identityPda] = getIdentityPda(identityOwner);
 
-    const tx = this.program.methods.updateTradingScore(score).accounts({
+    const tx = this.requireProgram().methods.updateTradingScore(score).accounts({
       authority: authority?.publicKey ?? this.provider.wallet.publicKey,
       identity: identityPda,
     });
@@ -410,7 +413,7 @@ export class SovereignClient {
   ): Promise<string> {
     const [identityPda] = getIdentityPda(identityOwner);
 
-    const tx = this.program.methods.updateCivicScore(score).accounts({
+    const tx = this.requireProgram().methods.updateCivicScore(score).accounts({
       authority: authority?.publicKey ?? this.provider.wallet.publicKey,
       identity: identityPda,
     });
@@ -435,7 +438,7 @@ export class SovereignClient {
   ): Promise<string> {
     const [identityPda] = getIdentityPda(identityOwner);
 
-    const tx = this.program.methods.updateDeveloperScore(score).accounts({
+    const tx = this.requireProgram().methods.updateDeveloperScore(score).accounts({
       authority: authority?.publicKey ?? this.provider.wallet.publicKey,
       identity: identityPda,
     });
@@ -460,7 +463,7 @@ export class SovereignClient {
   ): Promise<string> {
     const [identityPda] = getIdentityPda(identityOwner);
 
-    const tx = this.program.methods.updateInfraScore(score).accounts({
+    const tx = this.requireProgram().methods.updateInfraScore(score).accounts({
       authority: authority?.publicKey ?? this.provider.wallet.publicKey,
       identity: identityPda,
     });
@@ -481,7 +484,7 @@ export class SovereignClient {
   ): Promise<string> {
     const [identityPda] = getIdentityPda(identityOwner);
 
-    const tx = this.program.methods.updateCreatorScore(score).accounts({
+    const tx = this.requireProgram().methods.updateCreatorScore(score).accounts({
       authority: authority?.publicKey ?? this.provider.wallet.publicKey,
       identity: identityPda,
     });
@@ -505,10 +508,10 @@ export class SovereignClient {
     const [daoCounter] = getDaoCounterPda();
 
     // Read current counter to derive DAO PDA
-    const counterAccount = await this.program.account.daoCounter.fetch(daoCounter);
+    const counterAccount = await this.requireProgram().account.daoCounter.fetch(daoCounter);
     const [daoPda] = getDaoPda(founder, counterAccount.count);
 
-    return this.program.methods
+    return this.requireProgram().methods
       .createDao({
         name: params.name,
         description: params.description,
@@ -540,7 +543,7 @@ export class SovereignClient {
     const [memberIdentity] = getIdentityPda(memberWallet);
     const [membership] = getDaoMembershipPda(daoPda, memberWallet);
 
-    return this.program.methods
+    return this.requireProgram().methods
       .addFounderMember()
       .accounts({
         founder,
@@ -566,10 +569,10 @@ export class SovereignClient {
     const [nomineeIdentity] = getIdentityPda(nomineeWallet);
 
     // Read DAO to get current nonce
-    const dao = await this.program.account.creatorDao.fetch(daoPda);
+    const dao = await this.requireProgram().account.creatorDao.fetch(daoPda);
     const [nomination] = getNominationPda(daoPda, dao.nominationNonce);
 
-    return this.program.methods
+    return this.requireProgram().methods
       .nominateCreator({ reason: params.reason })
       .accounts({
         nominator,
@@ -604,7 +607,7 @@ export class SovereignClient {
           ? { reject: {} }
           : { abstain: {} };
 
-    return this.program.methods
+    return this.requireProgram().methods
       .castVote(voteArg, Array.from(salt))
       .accounts({
         voter,
@@ -633,10 +636,10 @@ export class SovereignClient {
     const [newMembership] = getDaoMembershipPda(daoPda, nomineeWallet);
 
     // Read nomination to get nominator
-    const nomination = await this.program.account.nomination.fetch(nominationPda);
+    const nomination = await this.requireProgram().account.nomination.fetch(nominationPda);
     const [nominatorMembership] = getDaoMembershipPda(daoPda, nomination.nominator);
 
-    return this.program.methods
+    return this.requireProgram().methods
       .resolveNomination()
       .accounts({
         resolver,
@@ -671,7 +674,7 @@ export class SovereignClient {
     const [factory] = getMarketFactoryPda();
     const [surfacingScore] = getSurfacingScorePda(creator);
 
-    return this.program.methods
+    return this.requireProgram().methods
       .createMarket({
         initialLiquidity: params.initialLiquidity,
         expiryDays: params.expiryDays,
@@ -703,7 +706,7 @@ export class SovereignClient {
 
     const sideArg = params.side === 0 ? { yes: {} } : { no: {} };
 
-    return this.program.methods
+    return this.requireProgram().methods
       .takePosition({
         amount: params.amount,
         side: sideArg,
@@ -731,10 +734,10 @@ export class SovereignClient {
     const [creatorScore] = getCreatorDetailsPda(predictor);
 
     // Read market to get market_creator for surfacing score
-    const market = await this.program.account.admissionMarket.fetch(marketPda);
+    const market = await this.requireProgram().account.admissionMarket.fetch(marketPda);
     const [surfacingScore] = getSurfacingScorePda(market.marketCreator);
 
-    return this.program.methods
+    return this.requireProgram().methods
       .claimWinnings()
       .accounts({
         predictor,
