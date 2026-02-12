@@ -337,4 +337,341 @@ describe('sovereign', () => {
       expect(identity.tier).to.equal(5);
     });
   });
+
+  // ========================================================================
+  // Creator DAO — PDA Derivation Tests
+  // ========================================================================
+
+  describe('Creator DAO PDAs', () => {
+    it('derives DAO counter PDA', () => {
+      const [counterPda, bump] = PublicKey.findProgramAddressSync(
+        [Buffer.from('dao_counter')],
+        program.programId
+      );
+
+      expect(counterPda).to.not.be.null;
+      expect(bump).to.be.a('number');
+
+      // Counter PDA is a singleton — same for all callers
+      const [counterPda2] = PublicKey.findProgramAddressSync(
+        [Buffer.from('dao_counter')],
+        program.programId
+      );
+      expect(counterPda.toBase58()).to.equal(counterPda2.toBase58());
+    });
+
+    it('derives DAO PDA from founder and counter', () => {
+      const founder = Keypair.generate().publicKey;
+      const count = 0;
+      const countBuf = Buffer.alloc(8);
+      countBuf.writeBigUInt64LE(BigInt(count));
+
+      const [daoPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('creator_dao'), founder.toBuffer(), countBuf],
+        program.programId
+      );
+
+      expect(daoPda).to.not.be.null;
+    });
+
+    it('different founders produce unique DAO PDAs', () => {
+      const count = Buffer.alloc(8);
+      count.writeBigUInt64LE(BigInt(0));
+
+      const founder1 = Keypair.generate().publicKey;
+      const founder2 = Keypair.generate().publicKey;
+
+      const [dao1] = PublicKey.findProgramAddressSync(
+        [Buffer.from('creator_dao'), founder1.toBuffer(), count],
+        program.programId
+      );
+      const [dao2] = PublicKey.findProgramAddressSync(
+        [Buffer.from('creator_dao'), founder2.toBuffer(), count],
+        program.programId
+      );
+
+      expect(dao1.toBase58()).to.not.equal(dao2.toBase58());
+    });
+
+    it('same founder with different counters produces unique DAO PDAs', () => {
+      const founder = Keypair.generate().publicKey;
+
+      const count0 = Buffer.alloc(8);
+      count0.writeBigUInt64LE(BigInt(0));
+      const count1 = Buffer.alloc(8);
+      count1.writeBigUInt64LE(BigInt(1));
+
+      const [dao0] = PublicKey.findProgramAddressSync(
+        [Buffer.from('creator_dao'), founder.toBuffer(), count0],
+        program.programId
+      );
+      const [dao1] = PublicKey.findProgramAddressSync(
+        [Buffer.from('creator_dao'), founder.toBuffer(), count1],
+        program.programId
+      );
+
+      expect(dao0.toBase58()).to.not.equal(dao1.toBase58());
+    });
+
+    it('derives DAO membership PDA', () => {
+      const dao = Keypair.generate().publicKey;
+      const member = Keypair.generate().publicKey;
+
+      const [membershipPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('dao_membership'), dao.toBuffer(), member.toBuffer()],
+        program.programId
+      );
+
+      expect(membershipPda).to.not.be.null;
+    });
+
+    it('different members in same DAO have unique membership PDAs', () => {
+      const dao = Keypair.generate().publicKey;
+      const member1 = Keypair.generate().publicKey;
+      const member2 = Keypair.generate().publicKey;
+
+      const [m1] = PublicKey.findProgramAddressSync(
+        [Buffer.from('dao_membership'), dao.toBuffer(), member1.toBuffer()],
+        program.programId
+      );
+      const [m2] = PublicKey.findProgramAddressSync(
+        [Buffer.from('dao_membership'), dao.toBuffer(), member2.toBuffer()],
+        program.programId
+      );
+
+      expect(m1.toBase58()).to.not.equal(m2.toBase58());
+    });
+
+    it('same member in different DAOs has unique membership PDAs', () => {
+      const dao1 = Keypair.generate().publicKey;
+      const dao2 = Keypair.generate().publicKey;
+      const member = Keypair.generate().publicKey;
+
+      const [m1] = PublicKey.findProgramAddressSync(
+        [Buffer.from('dao_membership'), dao1.toBuffer(), member.toBuffer()],
+        program.programId
+      );
+      const [m2] = PublicKey.findProgramAddressSync(
+        [Buffer.from('dao_membership'), dao2.toBuffer(), member.toBuffer()],
+        program.programId
+      );
+
+      expect(m1.toBase58()).to.not.equal(m2.toBase58());
+    });
+  });
+
+  // ========================================================================
+  // Nomination & Voting — PDA Derivation Tests
+  // ========================================================================
+
+  describe('Nomination & Voting PDAs', () => {
+    it('derives nomination PDA from DAO and nonce', () => {
+      const dao = Keypair.generate().publicKey;
+      const nonce = Buffer.alloc(8);
+      nonce.writeBigUInt64LE(BigInt(0));
+
+      const [nominationPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('nomination'), dao.toBuffer(), nonce],
+        program.programId
+      );
+
+      expect(nominationPda).to.not.be.null;
+    });
+
+    it('different nonces produce unique nomination PDAs', () => {
+      const dao = Keypair.generate().publicKey;
+
+      const nonce0 = Buffer.alloc(8);
+      nonce0.writeBigUInt64LE(BigInt(0));
+      const nonce1 = Buffer.alloc(8);
+      nonce1.writeBigUInt64LE(BigInt(1));
+
+      const [nom0] = PublicKey.findProgramAddressSync(
+        [Buffer.from('nomination'), dao.toBuffer(), nonce0],
+        program.programId
+      );
+      const [nom1] = PublicKey.findProgramAddressSync(
+        [Buffer.from('nomination'), dao.toBuffer(), nonce1],
+        program.programId
+      );
+
+      expect(nom0.toBase58()).to.not.equal(nom1.toBase58());
+    });
+
+    it('derives vote record PDA from nomination and voter', () => {
+      const nomination = Keypair.generate().publicKey;
+      const voter = Keypair.generate().publicKey;
+
+      const [votePda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('vote_record'), nomination.toBuffer(), voter.toBuffer()],
+        program.programId
+      );
+
+      expect(votePda).to.not.be.null;
+    });
+
+    it('each voter gets unique vote record per nomination', () => {
+      const nomination = Keypair.generate().publicKey;
+      const voter1 = Keypair.generate().publicKey;
+      const voter2 = Keypair.generate().publicKey;
+
+      const [vote1] = PublicKey.findProgramAddressSync(
+        [Buffer.from('vote_record'), nomination.toBuffer(), voter1.toBuffer()],
+        program.programId
+      );
+      const [vote2] = PublicKey.findProgramAddressSync(
+        [Buffer.from('vote_record'), nomination.toBuffer(), voter2.toBuffer()],
+        program.programId
+      );
+
+      expect(vote1.toBase58()).to.not.equal(vote2.toBase58());
+    });
+
+    it('same voter in different nominations gets unique vote records', () => {
+      const nom1 = Keypair.generate().publicKey;
+      const nom2 = Keypair.generate().publicKey;
+      const voter = Keypair.generate().publicKey;
+
+      const [vote1] = PublicKey.findProgramAddressSync(
+        [Buffer.from('vote_record'), nom1.toBuffer(), voter.toBuffer()],
+        program.programId
+      );
+      const [vote2] = PublicKey.findProgramAddressSync(
+        [Buffer.from('vote_record'), nom2.toBuffer(), voter.toBuffer()],
+        program.programId
+      );
+
+      expect(vote1.toBase58()).to.not.equal(vote2.toBase58());
+    });
+  });
+
+  // ========================================================================
+  // Admission Market — PDA Derivation Tests
+  // ========================================================================
+
+  describe('Admission Market PDAs', () => {
+    it('derives market PDA from DAO and creator identity', () => {
+      const dao = Keypair.generate().publicKey;
+      const creatorIdentity = Keypair.generate().publicKey;
+
+      const [marketPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('admission_market'), dao.toBuffer(), creatorIdentity.toBuffer()],
+        program.programId
+      );
+
+      expect(marketPda).to.not.be.null;
+    });
+
+    it('different creators in same DAO produce unique market PDAs', () => {
+      const dao = Keypair.generate().publicKey;
+      const creator1 = Keypair.generate().publicKey;
+      const creator2 = Keypair.generate().publicKey;
+
+      const [market1] = PublicKey.findProgramAddressSync(
+        [Buffer.from('admission_market'), dao.toBuffer(), creator1.toBuffer()],
+        program.programId
+      );
+      const [market2] = PublicKey.findProgramAddressSync(
+        [Buffer.from('admission_market'), dao.toBuffer(), creator2.toBuffer()],
+        program.programId
+      );
+
+      expect(market1.toBase58()).to.not.equal(market2.toBase58());
+    });
+
+    it('same creator in different DAOs produces unique market PDAs', () => {
+      const dao1 = Keypair.generate().publicKey;
+      const dao2 = Keypair.generate().publicKey;
+      const creator = Keypair.generate().publicKey;
+
+      const [market1] = PublicKey.findProgramAddressSync(
+        [Buffer.from('admission_market'), dao1.toBuffer(), creator.toBuffer()],
+        program.programId
+      );
+      const [market2] = PublicKey.findProgramAddressSync(
+        [Buffer.from('admission_market'), dao2.toBuffer(), creator.toBuffer()],
+        program.programId
+      );
+
+      expect(market1.toBase58()).to.not.equal(market2.toBase58());
+    });
+
+    it('derives market factory PDA (singleton)', () => {
+      const [factoryPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('market_factory')],
+        program.programId
+      );
+
+      // Singleton — same for all callers
+      const [factoryPda2] = PublicKey.findProgramAddressSync(
+        [Buffer.from('market_factory')],
+        program.programId
+      );
+
+      expect(factoryPda.toBase58()).to.equal(factoryPda2.toBase58());
+    });
+
+    it('derives market position PDA from market and predictor', () => {
+      const market = Keypair.generate().publicKey;
+      const predictor = Keypair.generate().publicKey;
+
+      const [positionPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('market_position'), market.toBuffer(), predictor.toBuffer()],
+        program.programId
+      );
+
+      expect(positionPda).to.not.be.null;
+    });
+
+    it('different predictors get unique position PDAs per market', () => {
+      const market = Keypair.generate().publicKey;
+      const pred1 = Keypair.generate().publicKey;
+      const pred2 = Keypair.generate().publicKey;
+
+      const [pos1] = PublicKey.findProgramAddressSync(
+        [Buffer.from('market_position'), market.toBuffer(), pred1.toBuffer()],
+        program.programId
+      );
+      const [pos2] = PublicKey.findProgramAddressSync(
+        [Buffer.from('market_position'), market.toBuffer(), pred2.toBuffer()],
+        program.programId
+      );
+
+      expect(pos1.toBase58()).to.not.equal(pos2.toBase58());
+    });
+
+    it('derives surfacing score PDA from creator', () => {
+      const creator = Keypair.generate().publicKey;
+
+      const [scorePda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('surfacing_score'), creator.toBuffer()],
+        program.programId
+      );
+
+      expect(scorePda).to.not.be.null;
+
+      // Deterministic
+      const [scorePda2] = PublicKey.findProgramAddressSync(
+        [Buffer.from('surfacing_score'), creator.toBuffer()],
+        program.programId
+      );
+      expect(scorePda.toBase58()).to.equal(scorePda2.toBase58());
+    });
+
+    it('different creators get unique surfacing score PDAs', () => {
+      const creator1 = Keypair.generate().publicKey;
+      const creator2 = Keypair.generate().publicKey;
+
+      const [score1] = PublicKey.findProgramAddressSync(
+        [Buffer.from('surfacing_score'), creator1.toBuffer()],
+        program.programId
+      );
+      const [score2] = PublicKey.findProgramAddressSync(
+        [Buffer.from('surfacing_score'), creator2.toBuffer()],
+        program.programId
+      );
+
+      expect(score1.toBase58()).to.not.equal(score2.toBase58());
+    });
+  });
 });
